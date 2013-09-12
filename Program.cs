@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ThreadSync
 {
-    public class Draw
+    public class DrawService
     {
         public readonly object Sync = new object();
         public int Count { get; set; }
@@ -18,38 +18,54 @@ namespace ThreadSync
             {
                 lock (Sync)
                 {
+                    // simulate drawing canvas
                     Thread.Sleep(16);
                     Console.WriteLine("Count: " + Count);
 
+                    // wait for next frame notifications
                     Monitor.Wait(Sync);
                 }
             }
         }
     }
 
-    public class View
+    public class ViewService
     {
-        public Draw draw;
-        Thread thread;
+        private DrawService draw;
+        private Thread thread;
 
-        public View()
+        public void Start()
         {
-            draw = new Draw();
-            thread = new Thread(new ThreadStart(draw.Loop));
+            if (thread == null)
+            {
+                draw = new DrawService();
+                thread = new Thread(new ThreadStart(draw.Loop));
 
-            thread.Start();
+                thread.Start();
+            }
         }
 
         public void Stop()
         {
-            thread.Join();
+            if (thread != null)
+            {
+                thread.Join();
+                thread = null;
+                draw = null;
+            }
         }
 
-        public void Notify()
+        private bool lockTaken = false;
+        public void HandleEvent(int count)
         {
-            lock (draw.Sync)
+            // notify Draw next frame
+            lockTaken = Monitor.TryEnter(draw.Sync, 16);
+            if (lockTaken)
             {
+                draw.Count = count;
+
                 Monitor.Pulse(draw.Sync);
+                Monitor.Exit(draw.Sync);
             }
         }
     }
@@ -59,28 +75,27 @@ namespace ThreadSync
         static void Main(string[] args)
         {
             int count = 0;
-            var view = new View();
+
+            var view = new ViewService();
+            view.Start();
 
             while(true)
             {
+                // handle event
                 var s = Console.ReadLine();
                 count++;
+                Console.Title = count.ToString();
 
-                lock(view.draw.Sync)
+                // check for quit command
+                if (s == "q")
                 {
-                    if (s == "q")
-                    {
-                        view.Stop();
-                        Console.WriteLine("Done");
-                        break;
-                    }
-                    else
-                    {
-                        view.draw.Count = count;
-                        //view.Notify();
-                        Monitor.Pulse(view.draw.Sync);
-                    }
+                    view.Stop();
+                    Console.WriteLine("Quit");
+                    break;
                 }
+
+                // notify Draw next frame
+                view.HandleEvent(count);
             }
         }
     }
