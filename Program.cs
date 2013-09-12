@@ -7,10 +7,11 @@ using System.Threading.Tasks;
 
 namespace ThreadSync
 {
-    public class DrawService
+    public class DrawService<T>
     {
         public readonly object Sync = new object();
-        public int Count { get; set; }
+        public T Data { get; set; }
+        public Action<T> Action { get; set; }
 
         public void Loop()
         {
@@ -18,30 +19,31 @@ namespace ThreadSync
             {
                 lock (Sync)
                 {
-                    // simulate drawing canvas
-                    Thread.Sleep(160);
-                    Console.WriteLine("Count: " + Count);
+                    // execute drawing action
+                    if (Action != null)
+                        Action(Data);
 
-                    // wait for next frame notifications
+                    // wait for next frame notification
                     Monitor.Wait(Sync);
                 }
             }
         }
     }
 
-    public class ViewService
+    public class ViewService<T>
     {
-        private DrawService draw;
+        private DrawService<T> draw;
         private Thread thread;
         private bool entered;
 
-        public void Start()
+        public void Start(Action<T> action)
         {
             if (thread == null)
             {
-                draw = new DrawService();
-                thread = new Thread(new ThreadStart(draw.Loop));
+                draw = new DrawService<T>();
+                draw.Action = action;
 
+                thread = new Thread(new ThreadStart(draw.Loop));
                 thread.Start();
             }
         }
@@ -56,19 +58,23 @@ namespace ThreadSync
             }
         }
 
-        public void HandleEvent(int count)
+        public void HandleEvent(T data)
         {
             // try to notify Draw next frame
             entered = Monitor.TryEnter(draw.Sync, 16);
             if (entered)
             {
-                draw.Count = count;
+                // update Draw state using new event data
+                draw.Data = data;
 
+                // notify Draw next frame
                 Monitor.Pulse(draw.Sync);
+
+                // enable Draw next frame
                 Monitor.Exit(draw.Sync);
             }
             else
-                Console.WriteLine("Skip: " + count);
+                Console.WriteLine("Skip: " + data);
         }
     }
 
@@ -78,8 +84,12 @@ namespace ThreadSync
         {
             int count = 0;
 
-            var view = new ViewService();
-            view.Start();
+            var view = new ViewService<int>();
+            view.Start((c) =>
+            {
+                Thread.Sleep(160);
+                Console.WriteLine("Count: " + c);
+            });
 
             while(true)
             {
