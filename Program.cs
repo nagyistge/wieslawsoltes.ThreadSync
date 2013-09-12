@@ -1,21 +1,34 @@
-﻿using System;
+﻿#region References
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+#endregion
+
 namespace ThreadSync
 {
+    #region DrawService
+
     public class DrawService<T>
     {
         public readonly object Sync = new object();
+        private bool isRunning = false;
+
         public T Data { get; set; }
         public Action<T> Action { get; set; }
 
+        public void SetRunning(bool run)
+        {
+            isRunning = run;
+        }
+
         public void Loop()
         {
-            while (true)
+            while (isRunning)
             {
                 lock (Sync)
                 {
@@ -28,7 +41,11 @@ namespace ThreadSync
                 }
             }
         }
-    }
+    } 
+
+    #endregion
+
+    #region ViewService
 
     public class ViewService<T>
     {
@@ -42,6 +59,7 @@ namespace ThreadSync
             {
                 draw = new DrawService<T>();
                 draw.Action = action;
+                draw.SetRunning(true);
 
                 thread = new Thread(new ThreadStart(draw.Loop));
                 thread.Start();
@@ -52,8 +70,17 @@ namespace ThreadSync
         {
             if (thread != null)
             {
+                // stop thread
+                draw.SetRunning(false);
+                lock (draw.Sync)
+                    Monitor.Pulse(draw.Sync);
+
+                // join thread
                 thread.Join();
                 thread = null;
+
+                // reset draw
+                draw.Action = null;
                 draw = null;
             }
         }
@@ -76,7 +103,11 @@ namespace ThreadSync
             else
                 Console.WriteLine("Skip: " + data);
         }
-    }
+    } 
+
+    #endregion
+
+    #region Program
 
     class Program
     {
@@ -85,13 +116,13 @@ namespace ThreadSync
             int count = 0;
 
             var view = new ViewService<int>();
-            view.Start((c) =>
+            view.Start((data) =>
             {
                 Thread.Sleep(160);
-                Console.WriteLine("Count: " + c);
+                Console.WriteLine("Count: " + data);
             });
 
-            while(true)
+            while (true)
             {
                 // handle event
                 var s = Console.ReadLine();
@@ -99,7 +130,7 @@ namespace ThreadSync
                 Console.Title = count.ToString();
 
                 // check for quit command
-                if (s == "q")
+                if (s.ToLower() == "q")
                 {
                     view.Stop();
                     Console.WriteLine("Quit");
@@ -110,5 +141,7 @@ namespace ThreadSync
                 view.HandleEvent(count);
             }
         }
-    }
+    } 
+
+    #endregion
 }
