@@ -19,7 +19,7 @@ namespace ThreadSync
                 lock (Sync)
                 {
                     // simulate drawing canvas
-                    Thread.Sleep(16);
+                    Thread.Sleep(160);
                     Console.WriteLine("Count: " + Count);
 
                     // wait for next frame notifications
@@ -33,6 +33,7 @@ namespace ThreadSync
     {
         private DrawService draw;
         private Thread thread;
+        private bool entered;
 
         public void Start()
         {
@@ -55,12 +56,11 @@ namespace ThreadSync
             }
         }
 
-        private bool lockTaken = false;
         public void HandleEvent(int count)
         {
-            // notify Draw next frame
-            lockTaken = Monitor.TryEnter(draw.Sync, 16);
-            if (lockTaken)
+            // try to notify Draw next frame
+            entered = Monitor.TryEnter(draw.Sync, 16);
+            if (entered)
             {
                 draw.Count = count;
 
