@@ -67,6 +67,8 @@ namespace ThreadSync
                 Monitor.Pulse(draw.Sync);
                 Monitor.Exit(draw.Sync);
             }
+            else
+                Console.WriteLine("Skip: " + count);
         }
     }
 
