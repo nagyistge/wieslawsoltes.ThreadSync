@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 #endregion
 
@@ -85,10 +84,10 @@ namespace ThreadSync
             }
         }
 
-        public void HandleEvent(T data)
+        public void HandleEvent(T data, int timeout)
         {
             // try to notify Draw next frame
-            entered = Monitor.TryEnter(draw.Sync, 16);
+            entered = Monitor.TryEnter(draw.Sync, timeout);
             if (entered)
             {
                 // update Draw state using new event data
@@ -118,7 +117,9 @@ namespace ThreadSync
             var view = new ViewService<int>();
             view.Start((data) =>
             {
+                // draw frame
                 Thread.Sleep(160);
+
                 Console.WriteLine("Count: " + data);
             });
 
@@ -138,7 +139,7 @@ namespace ThreadSync
                 }
 
                 // notify Draw next frame
-                view.HandleEvent(count);
+                view.HandleEvent(count, 16);
             }
         }
     } 
