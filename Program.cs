@@ -14,7 +14,7 @@ namespace ThreadSync
 
     public class DrawService<T>
     {
-        public readonly object Sync = new object();
+        public volatile object Sync = new object();
         private bool isRunning = false;
 
         public T Data { get; set; }
@@ -110,18 +110,15 @@ namespace ThreadSync
 
     class Program
     {
-        static void Main(string[] args)
+        private static void Main(string[] args)
+        {
+            Run();
+        }
+
+        private static void Run()
         {
             int count = 0;
-
-            var view = new ViewService<int>();
-            view.Start((data) =>
-            {
-                // draw frame
-                Thread.Sleep(160);
-
-                Console.WriteLine("Count: " + data);
-            });
+            var view = CreateView();
 
             while (true)
             {
@@ -141,6 +138,21 @@ namespace ThreadSync
                 // notify Draw next frame
                 view.HandleEvent(count, 16);
             }
+        }
+
+        private static ViewService<int> CreateView()
+        {
+            var view = new ViewService<int>();
+
+            view.Start((data) =>
+            {
+                // draw frame
+                Thread.Sleep(160);
+
+                Console.WriteLine("Count: " + data);
+            });
+
+            return view;
         }
     } 
 
