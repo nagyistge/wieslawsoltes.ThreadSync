@@ -119,16 +119,17 @@ namespace ThreadSync
         {
             int count = 0;
             var view = CreateView();
+            string line;
 
             while (true)
             {
                 // handle event
-                var s = Console.ReadLine();
+                line = Console.ReadLine();
                 count++;
                 Console.Title = count.ToString();
 
                 // check for quit command
-                if (s.ToLower() == "q")
+                if (line.ToLower() == "q")
                 {
                     view.Stop();
                     Console.WriteLine("Quit");
