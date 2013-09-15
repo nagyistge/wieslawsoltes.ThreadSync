@@ -12,6 +12,11 @@ namespace ThreadSync
 {
     #region Program
 
+    public class Data
+    {
+        public int Count { get; set; }
+    }
+
     class Program
     {
         private static void Main(string[] args)
@@ -19,9 +24,14 @@ namespace ThreadSync
             Run();
         }
 
+        private static Action<Data, Data> Copy = (src, dst) =>
+        {
+            dst.Count = src.Count;
+        };
+
         private static void Run()
         {
-            int count = 0;
+            var data = new Data() { Count = 0 };
             var service = CreateService();
             string line;
 
@@ -29,8 +39,8 @@ namespace ThreadSync
             {
                 // get event from user
                 line = Console.ReadLine();
-                count++;
-                Console.Title = count.ToString();
+                data.Count++;
+                Console.Title = data.Count.ToString();
 
                 // check for quit command
                 if (line.ToLower() == "q")
@@ -41,23 +51,24 @@ namespace ThreadSync
                 }
 
                 // try to handle next frame
-                var result = service.HandleEvent(count, 16);
+                var result = service.HandleEvent(data, Copy, 16);
                 if (result == false)
-                    Console.WriteLine("Skip: " + count);
+                    Console.WriteLine("Skip: " + data.Count);
             }
         }
 
-        private static BackgroundService<int> CreateService()
+        private static BackgroundService<Data> CreateService()
         {
-            var service = new BackgroundService<int>();
+            var service = new BackgroundService<Data>();
 
             service.Start((data) =>
             {
                 // draw frame
                 Thread.Sleep(160);
 
-                Console.WriteLine("Count: " + data);
-            });
+                Console.WriteLine("Count: " + data.Count);
+            },
+            new Data());
 
             return service;
         }
