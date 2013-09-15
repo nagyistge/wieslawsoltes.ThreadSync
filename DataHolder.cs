@@ -20,17 +20,18 @@ namespace ThreadSync
         public bool IsRunning { get; private set; }
 
         public T Data { get; private set; }
-        public Action<T> Action { get; private set; } 
+        public Action<T> Action { get; private set; }
 
         #endregion
 
         #region Constructor
 
-        public DataHolder(Action<T> action, bool isRunning)
+        public DataHolder(Action<T> action, T data, bool isRunning)
         {
+            Data = data;
             Action = action;
             IsRunning = isRunning;
-        } 
+        }
 
         #endregion
 
@@ -38,7 +39,7 @@ namespace ThreadSync
 
         public void SetAction(Action<T> action)
         {
-            lock(Sync)
+            lock (Sync)
                 Action = action;
         }
 
@@ -47,12 +48,12 @@ namespace ThreadSync
             IsRunning = isRunning;
         }
 
-        public bool SetData(T data, int timeout)
+        public bool SetData(T data, Action<T, T> copy, int timeout)
         {
             if (Monitor.TryEnter(Sync, timeout) == false)
                 return false;
 
-            Data = data;
+            copy(data, Data);
 
             Monitor.Pulse(Sync);
             Monitor.Exit(Sync);
@@ -76,7 +77,7 @@ namespace ThreadSync
                     Monitor.Wait(Sync);
                 }
             }
-        } 
+        }
 
         #endregion
     }

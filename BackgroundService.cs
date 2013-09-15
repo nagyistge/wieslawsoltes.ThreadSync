@@ -23,12 +23,12 @@ namespace ThreadSync
 
         #region Lifecycle
 
-        public void Start(Action<T> action)
+        public void Start(Action<T> action, T data)
         {
             if (thread != null)
                 return;
 
-            holder = new DataHolder<T>(action, true);
+            holder = new DataHolder<T>(action, data, true);
 
             thread = new Thread(new ThreadStart(holder.Loop));
             thread.Start();
@@ -47,16 +47,16 @@ namespace ThreadSync
 
             thread = null;
             holder = null;
-        } 
+        }
 
         #endregion
 
         #region Event Handler
 
-        public bool HandleEvent(T data, int timeout)
+        public bool HandleEvent(T data, Action<T, T> copy, int timeout)
         {
-            return holder != null ? holder.SetData(data, timeout) : false;
-        } 
+            return holder != null ? holder.SetData(data, copy, timeout) : false;
+        }
 
         #endregion
     }
