@@ -18,7 +18,6 @@ namespace ThreadSync
 
         private DrawService<T> draw = null;
         private Thread thread = null;
-        private bool entered = false; 
 
         #endregion
 
@@ -26,34 +25,30 @@ namespace ThreadSync
 
         public void Start(Action<T> action)
         {
-            if (thread == null)
-            {
-                draw = new DrawService<T>();
-                draw.Action = action;
-                draw.SetRunning(true);
+            if (thread != null)
+                return;
 
-                thread = new Thread(new ThreadStart(draw.Loop));
-                thread.Start();
-            }
+            draw = new DrawService<T>(action, true);
+
+            thread = new Thread(new ThreadStart(draw.Loop));
+            thread.Start();
         }
 
         public void Stop()
         {
-            if (thread != null)
-            {
-                // stop thread
-                draw.SetRunning(false);
-                lock (draw.Sync)
-                    Monitor.Pulse(draw.Sync);
+            if (thread == null)
+                return;
 
-                // join thread
-                thread.Join();
-                thread = null;
+            // stop thread
+            draw.SetRunning(false);
+            lock (draw.Sync)
+                Monitor.Pulse(draw.Sync);
 
-                // reset draw
-                draw.Action = null;
-                draw = null;
-            }
+            thread.Join();
+
+            // reset fields
+            thread = null;
+            draw = null;
         } 
 
         #endregion
@@ -62,21 +57,22 @@ namespace ThreadSync
 
         public void HandleEvent(T data, int timeout)
         {
-            // try to notify Draw next frame
-            entered = Monitor.TryEnter(draw.Sync, timeout);
-            if (entered)
+            // try to notify ro Draw next frame
+            var entered = Monitor.TryEnter(draw.Sync, timeout);
+            if (entered == false)
             {
-                // update Draw state using new event data
-                draw.Data = data;
-
-                // notify Draw next frame
-                Monitor.Pulse(draw.Sync);
-
-                // enable Draw next frame
-                Monitor.Exit(draw.Sync);
-            }
-            else
                 Console.WriteLine("Skip: " + data);
+                return;
+            }
+
+            // update Draw data
+            draw.Data = data;
+
+            // notify to Draw next frame
+            Monitor.Pulse(draw.Sync);
+
+            // enable Draw next frame
+            Monitor.Exit(draw.Sync);  
         } 
 
         #endregion
