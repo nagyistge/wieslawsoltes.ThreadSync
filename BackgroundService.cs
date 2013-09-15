@@ -55,7 +55,7 @@ namespace ThreadSync
 
         public bool HandleEvent(T data, int timeout)
         {
-            return holder.SetData(data, timeout);
+            return holder != null ? holder.SetData(data, timeout) : false;
         } 
 
         #endregion
