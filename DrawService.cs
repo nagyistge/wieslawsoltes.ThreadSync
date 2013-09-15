@@ -16,18 +16,34 @@ namespace ThreadSync
     {
         #region Properties
 
-        public volatile object Sync = new object();
+        public readonly object Sync = new object();
         public bool IsRunning { get; private set; }
         public T Data { get; set; }
-        public Action<T> Action { get; set; } 
+        public Action<T> Action { get; private set; } 
 
         #endregion
 
-        #region Running
+        #region Constructor
 
-        public void SetRunning(bool run)
+        public DrawService(Action<T> action, bool isRunning)
         {
-            IsRunning = run;
+            Action = action;
+            IsRunning = isRunning;
+        } 
+
+        #endregion
+
+        #region Set
+
+        public void SetAction(Action<T> action)
+        {
+            lock(Sync)
+                Action = action;
+        }
+
+        public void SetRunning(bool isRunning)
+        {
+            IsRunning = isRunning;
         }
 
         #endregion
