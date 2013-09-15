@@ -41,13 +41,15 @@ namespace ThreadSync
                 }
 
                 // notify Draw next frame
-                view.HandleEvent(count, 16);
+                var result = view.HandleEvent(count, 16);
+                if (result == false)
+                    Console.WriteLine("Skip: " + count);
             }
         }
 
-        private static ViewService<int> CreateView()
+        private static BackgroundService<int> CreateView()
         {
-            var view = new ViewService<int>();
+            var view = new BackgroundService<int>();
 
             view.Start((data) =>
             {

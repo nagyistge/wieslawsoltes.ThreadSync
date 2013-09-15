@@ -10,22 +10,23 @@ using System.Threading;
 
 namespace ThreadSync
 {
-    #region DrawService
+    #region DataHolder
 
-    public class DrawService<T>
+    public class DataHolder<T>
     {
         #region Properties
 
         public readonly object Sync = new object();
         public bool IsRunning { get; private set; }
-        public T Data { get; set; }
+
+        public T Data { get; private set; }
         public Action<T> Action { get; private set; } 
 
         #endregion
 
         #region Constructor
 
-        public DrawService(Action<T> action, bool isRunning)
+        public DataHolder(Action<T> action, bool isRunning)
         {
             Action = action;
             IsRunning = isRunning;
@@ -46,9 +47,22 @@ namespace ThreadSync
             IsRunning = isRunning;
         }
 
+        public bool SetData(T data, int timeout)
+        {
+            if (Monitor.TryEnter(Sync, timeout) == false)
+                return false;
+
+            Data = data;
+
+            Monitor.Pulse(Sync);
+            Monitor.Exit(Sync);
+
+            return true;
+        }
+
         #endregion
 
-        #region Draw Loop
+        #region Run Loop
 
         public void Loop()
         {
@@ -56,11 +70,9 @@ namespace ThreadSync
             {
                 lock (Sync)
                 {
-                    // execute drawing action
                     if (Action != null)
                         Action(Data);
 
-                    // wait for next frame notification
                     Monitor.Wait(Sync);
                 }
             }
