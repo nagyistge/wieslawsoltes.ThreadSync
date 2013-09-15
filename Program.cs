@@ -22,12 +22,12 @@ namespace ThreadSync
         private static void Run()
         {
             int count = 0;
-            var view = CreateView();
+            var service = CreateService();
             string line;
 
             while (true)
             {
-                // handle event
+                // get event from user
                 line = Console.ReadLine();
                 count++;
                 Console.Title = count.ToString();
@@ -35,23 +35,23 @@ namespace ThreadSync
                 // check for quit command
                 if (line.ToLower() == "q")
                 {
-                    view.Stop();
+                    service.Stop();
                     Console.WriteLine("Quit");
                     break;
                 }
 
-                // notify Draw next frame
-                var result = view.HandleEvent(count, 16);
+                // try to handle next frame
+                var result = service.HandleEvent(count, 16);
                 if (result == false)
                     Console.WriteLine("Skip: " + count);
             }
         }
 
-        private static BackgroundService<int> CreateView()
+        private static BackgroundService<int> CreateService()
         {
-            var view = new BackgroundService<int>();
+            var service = new BackgroundService<int>();
 
-            view.Start((data) =>
+            service.Start((data) =>
             {
                 // draw frame
                 Thread.Sleep(160);
@@ -59,7 +59,7 @@ namespace ThreadSync
                 Console.WriteLine("Count: " + data);
             });
 
-            return view;
+            return service;
         }
     } 
 
